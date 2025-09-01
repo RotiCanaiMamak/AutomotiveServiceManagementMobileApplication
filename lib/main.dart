@@ -5,19 +5,32 @@ import 'pages/workscheduler.dart';
 import 'pages/customer.dart';
 import 'pages/inventory.dart';
 import 'pages/invoice.dart';
+import 'pages/login.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatefulWidget {
+class MyApp extends StatelessWidget{
   const MyApp({super.key});
 
   @override
-  State<MyApp> createState() => _MyHomePageState();
+  Widget build(BuildContext context){
+    return MaterialApp(
+      title: 'GPT app',
+      home: Loginpage(),
+    );
+}
 }
 
-class _MyHomePageState extends State<MyApp> {
+class MyHomePage extends StatefulWidget {
+  const MyHomePage({super.key});
+
+  @override
+  State<MyHomePage> createState() => _MyHomePageState();
+}
+
+class _MyHomePageState extends State<MyHomePage> {
   int _currentpage = 0;
 
   final List<Widget> _pages = const [
