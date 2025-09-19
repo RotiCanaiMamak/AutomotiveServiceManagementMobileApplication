@@ -54,7 +54,7 @@ class _MyHomePageState extends State<MyHomePage> {
   final List<Widget> _pages = const [
     Homepage(),
     Vehiclepage(),
-    Workschedulerpage(),
+    WorkSchedulerPage(),
     Customerpage(),
     Inventorypage(),
     Invoicepage(),
