@@ -10,7 +10,7 @@ import 'pages/invoice.dart';
 import 'pages/login.dart';
 
 const String databaseurl = "https://etwmuxytsycqvvvcfsak.supabase.co";
-const String databasekey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0d211eHl0c3ljcXZ2dmNmc2FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgxMDUyODIsImV4cCI6MjA3MzY4MTI4Mn0.MBoKYIYCGEAyupokCgwAlgLFAD9O0M0_alxuAtvwr6k";
+const String databasekey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV0d211eHl0c3ljcXZ2dmNmc2FrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1ODEwNTI4MiwiZXhwIjoyMDczNjgxMjgyfQ.ZDanhVlh74a995rDPu9aqQ0pZ2LiDRs_bY6-GiLYZPM";
 
 class Staff{
   final String id;
@@ -26,6 +26,10 @@ class Staff{
 Future<void>main()async {
   WidgetsFlutterBinding.ensureInitialized();
   await Supabase.initialize(url: databaseurl, anonKey: databasekey);
+
+  final supabase = Supabase.instance.client;
+  final health = await supabase.from('Staff').select();
+  debugPrint("Health Check: $health");
   runApp(const MyApp());
 }
 

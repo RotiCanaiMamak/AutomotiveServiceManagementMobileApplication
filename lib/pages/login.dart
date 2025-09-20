@@ -23,6 +23,10 @@ class _LoginPageState extends State<LoginPage> {
           .eq('StaffID', id).eq('Password', pwd)
           .maybeSingle();
 
+      debugPrint("DEBUG: $response");
+      final allStaff = await supabase.from('Staff').select();
+      debugPrint("All Staff: $allStaff");
+
       if(response == null){
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Invalid ID or Password!"))
@@ -48,8 +52,7 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
+    return Scaffold(
         backgroundColor: Colors.white,
         body: Center(
             child: Column(
@@ -120,8 +123,7 @@ class _LoginPageState extends State<LoginPage> {
               ],
             )
         ),
-      ),
-    );
+      );
   }
 }
 
