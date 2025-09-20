@@ -169,7 +169,6 @@ class _WorkSchedulerPageState extends State<WorkSchedulerPage> {
   }
 
   void _showAddScheduleDialog() {
-    final pageContext = context;
 
     final now = DateTime.now();
     DateTime? startDate;
@@ -178,6 +177,7 @@ class _WorkSchedulerPageState extends State<WorkSchedulerPage> {
     final descController = TextEditingController();
     final List<WorkPeriod> workPeriods = [WorkPeriod()];
     final List<TextEditingController> workerControllers = [TextEditingController()];
+    String? errorMessage; // <-- inline error message
 
     showDialog(
       context: context,
@@ -194,6 +194,19 @@ class _WorkSchedulerPageState extends State<WorkSchedulerPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Inline error banner
+                        if (errorMessage != null)
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(8),
+                            color: Colors.red,
+                            child: Text(
+                              errorMessage!,
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        const SizedBox(height: 8),
+
                         Text("ID: $_nextId"),
                         Text("Date Created: ${now.toLocal().toString().split(' ')[0]}"),
                         Text("Created By: $_currentUser"),
@@ -335,39 +348,57 @@ class _WorkSchedulerPageState extends State<WorkSchedulerPage> {
               actions: [
                 ElevatedButton(
                   onPressed: () async {
-                    // VALIDATION with SnackBars
+                    // VALIDATION using inline error banner
                     if (nameController.text.trim().isEmpty) {
-                      ScaffoldMessenger.of(pageContext).showSnackBar(
-                          const SnackBar(content: Text("Schedule name cannot be empty")));
+                      setStateDialog(() => errorMessage = "Schedule name cannot be empty");
                       return;
                     }
                     if (startDate == null || endDate == null) {
-                      ScaffoldMessenger.of(pageContext).showSnackBar(
-                          const SnackBar(content: Text("Effective start and end dates cannot be empty")));
+                      setStateDialog(() => errorMessage = "Effective start and end dates cannot be empty");
                       return;
                     }
                     if (workPeriods.isEmpty) {
-                      ScaffoldMessenger.of(pageContext).showSnackBar(
-                          const SnackBar(content: Text("Work periods cannot be empty")));
+                      setStateDialog(() => errorMessage = "Work periods cannot be empty");
                       return;
                     }
                     for (var wp in workPeriods) {
                       if (wp.startTime == null || wp.endTime == null) {
-                        ScaffoldMessenger.of(pageContext).showSnackBar(
-                            const SnackBar(content: Text("Start time and end time must be selected")));
+                        setStateDialog(() => errorMessage = "Start time and end time must be selected");
                         return;
                       }
                       if (wp.startTime == wp.endTime) {
-                        ScaffoldMessenger.of(pageContext).showSnackBar(
-                            const SnackBar(content: Text("Start time and end time cannot be the same")));
+                        setStateDialog(() => errorMessage = "Start time and end time cannot be the same");
                         return;
                       }
                       if (wp.workerIds.trim().isEmpty) {
-                        ScaffoldMessenger.of(pageContext).showSnackBar(
-                            const SnackBar(content: Text("Worker IDs cannot be empty")));
+                        setStateDialog(() => errorMessage = "Worker IDs cannot be empty");
                         return;
                       }
                     }
+
+                    // Overlap validation
+                    for (int i = 0; i < workPeriods.length; i++) {
+                      final wp1 = workPeriods[i];
+                      final start1 = wp1.startTime!;
+                      final end1 = wp1.endTime!;
+
+                      for (int j = i + 1; j < workPeriods.length; j++) {
+                        final wp2 = workPeriods[j];
+                        final start2 = wp2.startTime!;
+                        final end2 = wp2.endTime!;
+
+                        bool overlap = (start1.hour * 60 + start1.minute < end2.hour * 60 + end2.minute) &&
+                            (end1.hour * 60 + end1.minute > start2.hour * 60 + start2.minute);
+
+                        if (overlap) {
+                          setStateDialog(() => errorMessage = "Work periods cannot overlap (period ${i+1} conflicts with period ${j+1})");
+                          return;
+                        }
+                      }
+                    }
+
+                    // Clear error
+                    setStateDialog(() => errorMessage = null);
 
                     final schedule = Schedule(
                       id: _nextId,
@@ -392,6 +423,7 @@ class _WorkSchedulerPageState extends State<WorkSchedulerPage> {
       },
     );
   }
+
 
   @override
   void dispose() {

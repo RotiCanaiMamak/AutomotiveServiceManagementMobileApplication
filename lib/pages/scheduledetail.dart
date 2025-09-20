@@ -12,12 +12,17 @@ class ScheduleDetailPage extends StatelessWidget {
 
     for (var wp in schedule.workPeriods) {
       if (wp.startTime == null || wp.endTime == null) {
-        // skip invalid work periods instead of crashing
-        continue;
+        continue; // skip invalid work periods
       }
 
       final start = Duration(hours: wp.startTime!.hour, minutes: wp.startTime!.minute);
-      final end = Duration(hours: wp.endTime!.hour, minutes: wp.endTime!.minute);
+      var end = Duration(hours: wp.endTime!.hour, minutes: wp.endTime!.minute);
+
+      // Handle overnight shifts
+      if (end < start) {
+        end += const Duration(days: 1);
+      }
+
       final duration = end - start;
 
       final workers = wp.workerIds
