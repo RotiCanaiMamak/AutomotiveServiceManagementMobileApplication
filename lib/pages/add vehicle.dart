@@ -161,9 +161,6 @@ class _AddVehiclepageState extends State<AddVehiclepage> {
                 ),
                 controller: modelctrl,
                 validator: (value){
-                  if(value == null || value.isEmpty){
-                    return "Please Enter Model of Vehicle!";
-                  }
                   return null;
                 },
                 ),
@@ -177,9 +174,6 @@ class _AddVehiclepageState extends State<AddVehiclepage> {
                 ),
                 controller: colorctrl,
                 validator: (value){
-                  if(value == null || value.isEmpty){
-                    return "Please Enter Color of Vehicle!";
-                  }
                   return null;
                 },
               ),
@@ -195,9 +189,6 @@ class _AddVehiclepageState extends State<AddVehiclepage> {
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 controller: yearctrl,
                 validator: (value){
-                  if(value == null || value.isEmpty){
-                    return "Please Enter Year(s) of vehicle!";
-                  }
                   return null;
                 },
               ),

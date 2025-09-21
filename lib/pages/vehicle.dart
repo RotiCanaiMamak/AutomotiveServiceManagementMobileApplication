@@ -160,7 +160,7 @@ class _VehiclepageState extends State<Vehiclepage> {
                                                   showDialog(context: context,
                                                       builder:(context) => AlertDialog(
                                                         title: const Text("Delete Vehicle"),
-                                                        content: const Text("Are you sure you want to delete this vehicles?"),
+                                                        content: Text("Are you sure you want to delete ${vehicle['Plate No']}?"),
                                                         actions: [
                                                           TextButton(onPressed: () => Navigator.pop(context),
                                                               child: const Text("Cancel")),
