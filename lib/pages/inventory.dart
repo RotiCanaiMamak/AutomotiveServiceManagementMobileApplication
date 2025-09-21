@@ -8,6 +8,7 @@ class SparePart {
   final String image;
   final int qty;
   final List<Map<String, dynamic>> details;
+  final List<Map<String, dynamic>> usage;
 
   SparePart({
     required this.name,
@@ -15,6 +16,7 @@ class SparePart {
     required this.image,
     required this.qty,
     required this.details,
+    required this.usage,
   });
 }
 
@@ -42,8 +44,17 @@ class _InventoryPageState extends State<Inventorypage> {
         image: e['image_url'] as String,
         qty: e['qty'] as int,
         details: List<Map<String, dynamic>>.from(e['details'] ?? []),
+        usage: List<Map<String, dynamic>>.from(e['Usage'] ?? []),
       );
     }).toList();
+  }
+
+  // Check if any subitem is < 10
+  bool hasLowSubItem(SparePart part) {
+    for (var d in part.details) {
+      if ((d['qty'] ?? 0) < 10) return true;
+    }
+    return false;
   }
 
   @override
@@ -115,7 +126,7 @@ class _InventoryPageState extends State<Inventorypage> {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Left image + qty
+                            // Image + Qty
                             Column(
                               children: [
                                 Image.asset(
@@ -126,9 +137,9 @@ class _InventoryPageState extends State<Inventorypage> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  "Qty: ${part.qty}",
+                                  "Qty: ${part.qty}${hasLowSubItem(part) ? ' !' : ''}",
                                   style: TextStyle(
-                                    color: part.qty <= 2
+                                    color: part.qty <= 10 || hasLowSubItem(part)
                                         ? Colors.red
                                         : Colors.black,
                                     fontWeight: FontWeight.bold,
@@ -138,7 +149,7 @@ class _InventoryPageState extends State<Inventorypage> {
                             ),
                             const SizedBox(width: 16),
 
-                            // Right text + button
+                            // Text + Button
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -220,9 +231,9 @@ class PartDetailsPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      "Quantity : ${part.qty}",
+                      "Quantity : ${part.qty}${part.qty <= 10 ? ' !' : ''}",
                       style: TextStyle(
-                        color: part.qty <= 2 ? Colors.red : Colors.black,
+                        color: part.qty <= 10 ? Colors.red : Colors.black,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -264,6 +275,7 @@ class PartDetailsPage extends StatelessWidget {
                       TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   const Divider(),
                   ...part.details.map((d) {
+                    final qty = d['qty'] as int? ?? 0;
                     return Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8.0),
                       child: Column(
@@ -280,9 +292,10 @@ class PartDetailsPage extends StatelessWidget {
                             children: [
                               const Text("Quantity   :"),
                               Text(
-                                "${d['qty']}",
+                                "$qty${qty <= 10 ? ' !' : ''}",
                                 style: TextStyle(
-                                  color: (d['qty'] as int) <= 2 ? Colors.red : Colors.black,
+                                  color: qty <= 10 ? Colors.red : Colors.black,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ],
@@ -298,9 +311,9 @@ class PartDetailsPage extends StatelessWidget {
                       const Text("Total Quantity:",
                           style: TextStyle(fontWeight: FontWeight.bold)),
                       Text(
-                        "$totalQty",
+                        "$totalQty${totalQty <= 10 ? ' !' : ''}",
                         style: TextStyle(
-                          color: totalQty <= 2 ? Colors.red : Colors.black,
+                          color: totalQty <= 10 ? Colors.red : Colors.black,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -324,215 +337,39 @@ class PartDetailsPage extends StatelessWidget {
 
             const SizedBox(height: 20),
 
-            // Only for Tyre -> Recent Usage
-            if (part.name.toLowerCase() == "tyre")
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text("Recent Usage :",
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
-                    Divider(),
-                    Text("Tyre Type : Radial Tyre"),
-                    Text("Usage     : 30"),
-                    Text("Purpose   : Fixing"),
-                    SizedBox(height: 12),
-                    Text("Tyre Type : Off-Road Tyre"),
-                    Text("Usage     : 40"),
-                    Text("Purpose   : Selling"),
-                    SizedBox(height: 12),
-                    Text("Tyre Type : Performance Tyre"),
-                    Text("Usage     : 0"),
-                    Text("Purpose   : -"),
-                  ],
-                ),
+            // Dynamic Usage Section
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey),
+                borderRadius: BorderRadius.circular(8),
               ),
-
-            // Only for Engine -> Recent Usage
-            if (part.name.toLowerCase() == "engine")
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text("Recent Usage :",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    Divider(),
-                    Text("Engine Type : V6 Engine"),
-                    Text("Usage     : 15"),
-                    Text("Purpose   : Fixing"),
-                    SizedBox(height: 12),
-                    Text("Engine Type : V8 Engine"),
-                    Text("Usage     : 22"),
-                    Text("Purpose   : Selling"),
-                  ],
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Recent Usage :",
+                      style:
+                      TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const Divider(),
+                  if (part.usage.isEmpty)
+                    const Text("(No recent usage found)"),
+                  ...part.usage.map((u) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("${u['type'] ?? 'Unknown'}"),
+                          Text("Usage: ${u['usage'] ?? 0}"),
+                          Text("Purpose: ${u['purpose'] ?? '-'}"),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ],
               ),
-
-            // Only for Spark Plug -> Recent Usage
-            if (part.name.toLowerCase() == "spark plug")
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text("Recent Usage :",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    Divider(),
-                    Text("Spark Plug Type : Copper Spark Plug"),
-                    Text("Usage     : 0"),
-                    Text("Purpose   : -"),
-                  ],
-                ),
-              ),
-
-            // Only for Wheel -> Recent Usage
-            if (part.name.toLowerCase() == "wheel")
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text("Recent Usage :",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    Divider(),
-                    Text("Wheel Type : Alloy Wheel"),
-                    Text("Usage     : 8"),
-                    Text("Purpose   : Fixing"),
-                    SizedBox(height: 12),
-                    Text("Wheel Type : Steel Wheel"),
-                    Text("Usage     : 5"),
-                    Text("Purpose   : Selling"),
-                  ],
-                ),
-              ),
-
-            // Only for Brake Pad -> Recent Usage
-            if (part.name.toLowerCase() == "brake pad")
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text("Recent Usage :",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    Divider(),
-                    Text("Brake Pad Type : Ceramic Pad"),
-                    Text("Usage     : 12"),
-                    Text("Purpose   : Fixing"),
-                    SizedBox(height: 12),
-                    Text("Brake Pad Type : Semi-Metallic Pad"),
-                    Text("Usage     : 7"),
-                    Text("Purpose   : Selling"),
-                  ],
-                ),
-              ),
-
-            // Only for Window -> Recent Usage
-            if (part.name.toLowerCase() == "window")
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text("Recent Usage :",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    Divider(),
-                    Text("Window Type : Front Window"),
-                    Text("Usage     : 2"),
-                    Text("Purpose   : Fixing"),
-                    SizedBox(height: 12),
-                    Text("Window Type : Rear Window"),
-                    Text("Usage     : 4"),
-                    Text("Purpose   : Selling"),
-                  ],
-                ),
-              ),
-
-            // Only for Steering Wheel -> Recent Usage
-            if (part.name.toLowerCase() == "steering wheel")
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text("Recent Usage :",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    Divider(),
-                    Text("Steering Wheel Type : Standard"),
-                    Text("Usage     : 5"),
-                    Text("Purpose   : Selling"),
-                    SizedBox(height: 12),
-                    Text("Steering Wheel Type : Sport"),
-                    Text("Usage     : 3"),
-                    Text("Purpose   : Fixing"),
-                  ],
-                ),
-              ),
-
-            // Only for Wiper -> Recent Usage
-            if (part.name.toLowerCase() == "wiper")
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text("Recent Usage :",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    Divider(),
-                    Text("Wiper Type : Front Wiper"),
-                    Text("Usage     : 12"),
-                    Text("Purpose   : Fixing"),
-                    SizedBox(height: 12),
-                    Text("Wiper Type : Rear Wiper"),
-                    Text("Usage     : 8"),
-                    Text("Purpose   : Selling"),
-                  ],
-                ),
-              ),
-
+            ),
           ],
         ),
       ),

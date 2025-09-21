@@ -172,7 +172,7 @@ class _InvoicepageState extends State<Invoicepage> {
                                                 InvoiceDetailPage(invoice: invoice),
                                           ),
                                         );
-                                        // Refresh list after returning from detail
+                                        // 用来refresh page的
                                         fetchInvoices();
                                       },
                                       child: const Text("View"),
@@ -243,7 +243,7 @@ class InvoiceDetailPage extends StatelessWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Invoice saved to ${file.path}')),
         );
-        // View -> Tool Windows -> Device Explorer -> ctrl+f(assgn1)
+        // file存在：View -> Tool Windows -> Device Explorer -> ctrl+f(assgn1)
 
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -272,7 +272,7 @@ class InvoiceDetailPage extends StatelessWidget {
             Text("Payment Date  : ${invoice['payment_date'].toString().substring(0, 10)}"),
             Text("Invoice No    : ${invoice['invoiceNo']}"),
             const SizedBox(height: 8),
-            // Status chip
+            // Status of payment
             Row(
               children: [
                 const Text("Status: ", style: TextStyle(fontWeight: FontWeight.bold)),
@@ -319,7 +319,7 @@ class InvoiceDetailPage extends StatelessWidget {
             Align(
               alignment: Alignment.centerRight,
               child: Text(
-                "Total Payable Amount: RM ${total.toStringAsFixed(2)}",
+                "Total Payment Amount: RM ${total.toStringAsFixed(2)}",
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ),
