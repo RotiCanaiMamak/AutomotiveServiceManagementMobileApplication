@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '/utils/LoginStaff.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:intl/intl.dart';
+import 'login.dart';
 
 class Homepage extends StatefulWidget {
   const Homepage({super.key});
@@ -33,7 +34,6 @@ class _HomepageState extends State<Homepage> {
     _loadStaffName();
     _loadRevenue();
     _loadInventory();
-    _loadScheduleData();
     _loadRecentCommunications();
     _loadRecentServices();
   }
@@ -79,49 +79,6 @@ class _HomepageState extends State<Homepage> {
     });
   }
 
-  Future<void> _loadScheduleData() async {
-    final response = await supabase.from('Schedule').select('start_date,end_date');
-    DateTime now = DateTime.now();
-    DateTime startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-    DateTime startOfMonth = DateTime(now.year, now.month, 1);
-    int wCount = 0;
-    int mCount = 0;
-    int actCount = 0;
-    int expCount = 0;
-    int futCount = 0;
-    Map<String, int> trend = {};
-    Map<int, int> hourCount = {};
-    for (var row in response) {
-      DateTime start = DateTime.parse(row['start_date']);
-      DateTime end = DateTime.parse(row['end_date']);
-      if (start.isAfter(startOfWeek) && start.isBefore(now)) wCount++;
-      if (start.isAfter(startOfMonth) && start.isBefore(now)) mCount++;
-      if (end.isBefore(now)) {
-        expCount++;
-      } else if (start.isAfter(now)) {
-        futCount++;
-      } else {
-        actCount++;
-      }
-      String dayKey = DateFormat('yyyy-MM-dd').format(start);
-      trend[dayKey] = (trend[dayKey] ?? 0) + 1;
-      int hour = start.hour;
-      hourCount[hour] = (hourCount[hour] ?? 0) + 1;
-    }
-    List<Map<String, dynamic>> sortedHours = hourCount.entries.map((e) => {"hour": e.key, "count": e.value}).toList();
-    sortedHours.sort((a, b) => b["count"].compareTo(a["count"]));
-    sortedHours = sortedHours.take(3).toList();
-    setState(() {
-      weeklyCount = wCount;
-      monthlyCount = mCount;
-      activeCount = actCount;
-      expiredCount = expCount;
-      futureCount = futCount;
-      dailyTrend = trend;
-      topBusyHours = sortedHours;
-    });
-  }
-
   Future<void> _loadRecentCommunications() async {
     final response = await supabase
         .from('Communication_History')
@@ -136,8 +93,8 @@ class _HomepageState extends State<Homepage> {
   Future<void> _loadRecentServices() async {
     final response = await supabase
         .from('Service_History')
-        .select('Service Date,Description,Vehicle(PlateNo, Make, Model)')
-        .order('Service Date', ascending: false)
+        .select('"Service Date",Description,Vehicle("Plate No",Make,Model)')
+        .order("Service Date", ascending: false)
         .limit(5);
     setState(() {
       recentServices = List<Map<String, dynamic>>.from(response);
@@ -151,6 +108,20 @@ class _HomepageState extends State<Homepage> {
         title: Text(staffname != null ? "Welcome, Mr $staffname" : "Welcome"),
         centerTitle: true,
         shape: const Border(bottom: BorderSide(color: Colors.black38, width: 1)),
+        actions: [
+          IconButton(
+              onPressed: () async{
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.remove('staffname');
+                if(!mounted) return;
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (context) => LoginPage()),
+                );
+              },
+              icon: const Icon(Icons.logout),
+              tooltip: 'Logout',
+          )
+        ],
       ),
       body: monthlyRevenue.isEmpty && dailyTrend.isEmpty
           ? const Center(child: CircularProgressIndicator())
@@ -170,13 +141,13 @@ class _HomepageState extends State<Homepage> {
                 Column(
                   children: lowStockItems.map((item) {
                     return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      margin: const EdgeInsets.symmetric(vertical: 10),
                       child: Padding(
                         padding: const EdgeInsets.all(8.0),
                         child: Column(
                           children: [
                             item['image_url'] != null
-                                ? Image.network(item['image_url'], width: 100, height: 100, fit: BoxFit.cover)
+                                ? Image.asset('assets/${item['image_url']}', width: 100, height: 100, fit: BoxFit.cover)
                                 : const Icon(Icons.inventory, size: 60),
                             const SizedBox(height: 8),
                             Text(item['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -225,56 +196,8 @@ class _HomepageState extends State<Homepage> {
               const Text("Monthly Revenue Chart", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
               SizedBox(height: 10,),
               const Divider(thickness: 1),
-              SizedBox(height: 18,),
 
-              Text("This Week: $weeklyCount, This Month: $monthlyCount"),
-              const SizedBox(height: 10),
-              Text("Active: $activeCount, Expired: $expiredCount, Future: $futureCount"),
-              const SizedBox(height: 20),
-              /*SizedBox(
-                height: 250,
-                child: LineChart(
-                  LineChartData(
-                    titlesData: FlTitlesData(
-                      leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true)),
-                      bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          getTitlesWidget: (value, meta) {
-                            int index = value.toInt();
-                            if (index >= 0 && index < dailyTrend.keys.length) {
-                              return Text(dailyTrend.keys.elementAt(index).substring(5));
-                            }
-                            return const Text('');
-                          },
-                        ),
-                      ),
-                    ),
-                    lineBarsData: [
-                      LineChartBarData(
-                        spots: dailyTrend.entries.toList().asMap().entries.map((entry) => FlSpot(entry.key.toDouble(), entry.value.value.toDouble())).toList(),
-                        isCurved: true,
-                        barWidth: 3,
-                        color: Colors.blue,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              const Text("Top 3 Busiest Hours:"),
-              Column(
-                children: topBusyHours.map((e) {
-                  return ListTile(
-                    leading: const Icon(Icons.access_time),
-                    title: Text("${e['hour']}:00"),
-                    trailing: Text("Count: ${e['count']}"),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 15),
-              const Divider(thickness: 1),
+              SizedBox(height: 10,),
 
               const Text("Recent Communications", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
@@ -304,17 +227,17 @@ class _HomepageState extends State<Homepage> {
               Column(
                 children: recentServices.map((service) {
                   final vehicle = service['Vehicle'];
-                  final vehicleName = "${vehicle['PlateNo']} (${vehicle['Make']} ${vehicle['Model']})";
+                  final vehicleName = "${vehicle['Plate No']} (${vehicle['Make']} ${vehicle['Model']})";
                   return Card(
                     margin: const EdgeInsets.symmetric(vertical: 6),
                     child: ListTile(
                       leading: vehicle['ImageURL'] != null
                           ? Image.network(vehicle['ImageURL'], width: 50, height: 50, fit: BoxFit.cover)
-                          : const Icon(Icons.directions_car, color: Colors.blue),
+                          : const Icon(Icons.directions_car, color: Colors.blueGrey),
                       title: Text(vehicleName),
                       subtitle: Text(service['Description'] ?? ''),
                       trailing: Text(
-                        service['ServiceDate'].toString().split('T')[0],
+                        service['Service Date'].toString().split('T')[0],
                         style: const TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                     ),
