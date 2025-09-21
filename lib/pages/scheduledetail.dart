@@ -23,7 +23,9 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
   }
 
   String _formatTime(TimeOfDay? t) {
-    if (t == null) return "--:--";
+    if (t == null){
+      return "--:--";
+    }
     final h = t.hour.toString().padLeft(2, "0");
     final m = t.minute.toString().padLeft(2, "0");
     return "$h:$m";
@@ -32,11 +34,15 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
   Map<String, Duration> _calculateHoursPerWorker() {
     final Map<String, Duration> workerHours = {};
     for (var wp in schedule.workPeriods) {
-      if (wp.startTime == null || wp.endTime == null) continue;
+      if (wp.startTime == null || wp.endTime == null){
+        continue;
+      }
 
       final start = Duration(hours: wp.startTime!.hour, minutes: wp.startTime!.minute);
       var end = Duration(hours: wp.endTime!.hour, minutes: wp.endTime!.minute);
-      if (end < start) end += const Duration(days: 1);
+      if (end < start){ //if overnight shift
+        end += const Duration(days: 1);
+      }
 
       final duration = end - start;
       for (var id in wp.workerIds) {
@@ -63,20 +69,24 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
       ),
     );
 
-    if (confirm != true) return;
+    if (confirm != true){
+      return;
+    }
 
     try {
-      // Delete work periods + worker relations
+      //delete work periods and associative entity
       for (var wp in schedule.workPeriods) {
         if (wp.id != null) {
           await supabase.from('Work_Periods_Worker').delete().eq('work_period_id', wp.id!);
           await supabase.from('Work_Periods').delete().eq('id', wp.id!);
 
-          // Update worker total hours
+          //update worker total hours
           final start = Duration(hours: wp.startTime!.hour, minutes: wp.startTime!.minute);
           var end = Duration(hours: wp.endTime!.hour, minutes: wp.endTime!.minute);
-          if (end < start) end += const Duration(days: 1);
-          final durationHours = end.inMinutes / 60.0;
+          if (end < start){
+            end += const Duration(days: 1);
+          }
+          final durationHours = end.inMinutes / 60;
 
           for (var workerId in wp.workerIds) {
             final worker = await supabase.from('Worker').select('total_work_hours').eq('id', workerId).maybeSingle();
@@ -90,7 +100,7 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
         }
       }
 
-      // Delete the schedule itself
+      //delete the schedule
       await supabase.from('Schedule').delete().eq('id', schedule.id);
 
       if (mounted) {
@@ -125,7 +135,7 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Created At + Created By
+              //created at and created by
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -158,7 +168,7 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
               ),
               const SizedBox(height: 16),
 
-              // Schedule Name & Description
+              //schdule name and description
               Center(
                 child: Text(
                   schedule.name,
@@ -177,7 +187,7 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
               ),
               const SizedBox(height: 20),
 
-              // Effective Period
+              //effective period
               const Text(
                 "Effective Period",
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -191,7 +201,7 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
               const Divider(thickness: 1),
               const SizedBox(height: 8),
 
-              // Tabs
+              //tabs
               const TabBar(
                 labelColor: Colors.blue,
                 unselectedLabelColor: Colors.black54,
@@ -203,11 +213,10 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
               ),
               const SizedBox(height: 8),
 
-              // Tab Views
               Expanded(
                 child: TabBarView(
                   children: [
-                    // Overall Schedule
+                    //overall work periods
                     ListView.builder(
                       itemCount: schedule.workPeriods.length,
                       itemBuilder: (context, index) {
@@ -254,12 +263,12 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
                       },
                     ),
 
-                    // Total Hours Tab
+                    //worker total hours in the current schedule
                     Builder(
                       builder: (context) {
                         final workerHours = _calculateHoursPerWorker();
 
-// Sort descending by duration
+                        //sort descending by duration
                         final sortedEntries = workerHours.entries.toList()
                           ..sort((a, b) => b.value.compareTo(a.value));
 
@@ -297,7 +306,7 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
               ),
 
               const SizedBox(height: 12),
-              // DELETE BUTTON (added, functionality included)
+              //delete button
               Center(
                 child: ElevatedButton.icon(
                   onPressed: _deleteSchedule,

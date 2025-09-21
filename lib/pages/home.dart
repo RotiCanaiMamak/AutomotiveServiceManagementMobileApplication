@@ -231,7 +231,7 @@ class _HomepageState extends State<Homepage> {
               const SizedBox(height: 10),
               Text("Active: $activeCount, Expired: $expiredCount, Future: $futureCount"),
               const SizedBox(height: 20),
-              SizedBox(
+              /*SizedBox(
                 height: 250,
                 child: LineChart(
                   LineChartData(
@@ -320,7 +320,7 @@ class _HomepageState extends State<Homepage> {
                     ),
                   );
                 }).toList(),
-              ),
+              ),*/
             ],
           ),
         ),
