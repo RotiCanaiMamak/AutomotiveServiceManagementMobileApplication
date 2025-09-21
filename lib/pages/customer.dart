@@ -134,7 +134,7 @@ class CustomerpageState extends State<Customerpage> {
                                     crossAxisAlignment: CrossAxisAlignment.center,
                                     children: [
                                       SizedBox(
-                                          width: 200,
+                                          width: 160,
                                           height: 160,
                                           child: Image.network(
                                             imageURL,
@@ -148,8 +148,8 @@ class CustomerpageState extends State<Customerpage> {
                                             children: [
                                               Text("${customer['Name']}",
                                                 style: const TextStyle(
-                                                  fontSize: 23,
-                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 19,
+                                                  fontWeight: FontWeight.w600,
                                                 ),),
                                               IconButton(
                                                 icon: const Icon(Icons.delete),
@@ -176,7 +176,7 @@ class CustomerpageState extends State<Customerpage> {
                                             ],
                                           ),
                                           Text("Customer ID: ${customer['ID']} ",
-                                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w400),),
+                                          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w400),),
                                         ],
                                       )
                                       )

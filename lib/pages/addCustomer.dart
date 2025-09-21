@@ -64,7 +64,7 @@ class _AddCustomerpageState extends State<AddCustomerpage> {
       await Supabase.instance.client.storage.from("Customers").upload(fileName, _customerimage!);
       final imageUrl = Supabase.instance.client.storage.from("Customers").getPublicUrl(fileName);
 
-      await Supabase.instance.client.from("Vehicle").insert({
+      await Supabase.instance.client.from("Customer").insert({
         "ID": newID,
         "Name": namectrl.text,
         'Address': addressctrl.text,
