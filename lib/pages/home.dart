@@ -196,6 +196,7 @@ class _HomepageState extends State<Homepage> {
               const Text("Monthly Revenue Chart", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
               SizedBox(height: 10,),
               const Divider(thickness: 1),
+
               SizedBox(height: 10,),
 
               const Text("Recent Communications", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
@@ -242,7 +243,7 @@ class _HomepageState extends State<Homepage> {
                     ),
                   );
                 }).toList(),
-              ),
+              ),*/
             ],
           ),
         ),

@@ -45,15 +45,18 @@
     final List<sch.Schedule> _allSchedules = [];
     List<sch.Schedule> _filteredSchedules = [];
 
-    int get _nextId =>
-        _allSchedules.isEmpty
-            ? 1
-            : _allSchedules.map((s) => s.id).reduce((a, b) => a > b ? a : b) + 1;
+    int get _nextId => //getter
+        _allSchedules.isEmpty //if schedule is empty
+            ? 1                   //return 1
+            : _allSchedules.map((s) => s.id) //create a new list based on schedule ID
+            .reduce((a, b) => a > b ? a : b) + 1; //.reduce: combine it into single value
+                                                      //then compare one by one
+                                                      //then return the largest value + 1
 
     @override
     void initState() {
       super.initState();
-      _searchController.addListener(_filterSchedules);
+      _searchController.addListener(_filterSchedules); //addListener: run the function each time text changes
       _loadSchedulesFromSupabase();
     }
 
@@ -62,35 +65,36 @@
       setState(() {
         _filteredSchedules = _allSchedules
             .where((s) =>
-        s.id.toString().contains(query) ||
-            s.name.toLowerCase().contains(query) ||
-            s.createdBy.toLowerCase().contains(query))
-            .toList();
+        s.id.toString().contains(query) || //check by schedule id
+            s.name.toLowerCase().contains(query) || //check by schedule name
+            s.createdBy.toLowerCase().contains(query)) //check by created by
+            .toList(); //converts back to list (so .where can work)
       });
     }
 
     Future<void> _loadSchedulesFromSupabase() async {
       try {
-        final response = await supabase
+        final response = await supabase //connects to supabase
             .from('Schedule')
             .select()
-            .order('id', ascending: true);
+            .order('id', ascending: true); //sort in ascending order
 
         if (response.isEmpty) {
           setState(() {
-            _allSchedules.clear();
-            _filteredSchedules.clear();
+            _allSchedules.clear(); //clear all list (jz in case there are remaining schedules in the screen)
+            _filteredSchedules.clear(); //same thing here
           });
           return;
         }
 
-        // Fetch all workers once
-        final allWorkersResponse = await supabase.from('Worker').select();
-        final allWorkers = (allWorkersResponse as List).map<sch.Worker>((w) {
-          return sch.Worker(
+        final allWorkersResponse = await supabase.from('Worker').select(); //get all workers at once
+        final allWorkers = (allWorkersResponse as List).map<sch.Worker>((w) { //<sch.Worker>: to specify the elements are object of schedule class
+          return sch.Worker( //converts into sch.Worker object
             id: w['id'] as int,
             name: w['name'] as String,
-            totalWorkHours: (w['total_work_hours'] as num?)?.toDouble() ?? 0,
+            totalWorkHours: (w['total_work_hours'] as num?)?.toDouble() ?? 0, //num?: can be int, can be double, can be null
+                                                                              //?.toDouble: convert to double only if not null
+                                                                              //if value is null, then return 0
           );
         }).toList();
 
@@ -99,7 +103,7 @@
         for (var row in response) {
           final scheduleId = row['id'] as int;
 
-          // Fetch work periods for this schedule
+          //get work periods for this specific schedule in the loop
           final workPeriodRows = await supabase
               .from('Work_Periods')
               .select()
@@ -110,21 +114,22 @@
           for (var wpRow in workPeriodRows) {
             final wpId = wpRow['id'] as int;
 
-            // Parse start/end times
+            //parse start & end time
             final startParts = (wpRow['start_time'] as String).split(':');
             final endParts = (wpRow['end_time'] as String).split(':');
 
-            // Fetch related worker IDs
+            //get worker IDs in the work period
             final wpWorkers = await supabase
                 .from('Work_Periods_Worker')
                 .select('worker_id')
-                .eq('work_period_id', wpId);
+                .eq('work_period_id', wpId); //get only this specific work period
 
-            final workerIds = wpWorkers.map<int>((w) => w['worker_id'] as int).toList();
+            final workerIds = wpWorkers.map<int>((w) => w['worker_id'] as int).toList(); //store as int
 
-            // Filter allWorkers locally
+            //filter allWorkers list to get the full worker objects (id, name, total hours)
             final workers = allWorkers.where((w) => workerIds.contains(w.id)).toList();
 
+            //add into list
             workPeriods.add(
               sch.WorkPeriod(
                 id: wpRow['id'] as int,
@@ -140,10 +145,9 @@
                 workers: workers,
               ),
             );
-
-            debugPrint('WorkPeriod $wpId workers: ${workers.map((w) => w.id).toList()}');
           }
 
+          //add into list
           schedules.add(
             sch.Schedule(
               id: scheduleId,
@@ -151,8 +155,8 @@
               dateCreated: DateTime.parse(row['date_created']),
               createdBy: row['created_by'] ?? 'Unknown',
               startDate: row['effective_start'] != null
-                  ? DateTime.parse(row['effective_start'])
-                  : null,
+                  ? DateTime.parse(row['effective_start']) //if true
+                  : null,                                  //if false
               endDate: row['effective_end'] != null
                   ? DateTime.parse(row['effective_end'])
                   : null,
@@ -163,13 +167,12 @@
         }
 
         setState(() {
-          _allSchedules
-            ..clear()
-            ..addAll(schedules);
-          _filteredSchedules = List.from(_allSchedules);
+          _allSchedules //..: call multiple methods on the same object
+            ..clear()   //clear all existing schedules
+            ..addAll(schedules); //add all the newly fetched schedules
+          _filteredSchedules = List.from(_allSchedules); //creates a copy of _allSchedules so they are separate objects
         });
       } catch (e) {
-        debugPrint("Error loading schedules: $e");
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text("Error loading schedules: $e")),
@@ -183,12 +186,12 @@
         final response = await supabase.from('Schedule').insert({
           'id': schedule.id,
           'name': schedule.name,
-          'date_created': schedule.dateCreated.toIso8601String(),
+          'date_created': schedule.dateCreated.toIso8601String(), //converts into a String format that supabase can store
           'created_by': schedule.createdBy,
           'effective_start': schedule.startDate?.toIso8601String(),
           'effective_end': schedule.endDate?.toIso8601String(),
           'description': schedule.description,
-        }).select();
+        }).select(); //return the inserted row (to get schedule ID)
 
         if (response.isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -197,61 +200,57 @@
           return;
         }
 
-        final scheduleId = response[0]['id'];
+        final scheduleId = response[0]['id']; //save the new generated ID (for work periods)
 
         for (var wp in schedule.workPeriods) {
-          // Insert work period
           final wpResponse = await supabase.from('Work_Periods').insert({
             'schedule_id': scheduleId,
-            'start_time': '${wp.startTime!.hour}:${wp.startTime!.minute}:00',
+            'start_time': '${wp.startTime!.hour}:${wp.startTime!.minute}:00', //!: guarantee the value isnt null
             'end_time': '${wp.endTime!.hour}:${wp.endTime!.minute}:00',
           }).select();
 
           final workPeriodId = wpResponse[0]['id'];
-          // Assign the generated ID to the local object
-          wp.id = workPeriodId;
+          wp.id = workPeriodId; //save into workPeriod object
 
-          // Calculate duration
+          //calculate total hours
           final start = Duration(
               hours: wp.startTime!.hour, minutes: wp.startTime!.minute);
           var end = Duration(
               hours: wp.endTime!.hour, minutes: wp.endTime!.minute);
-          if (end < start) {
-            end += const Duration(days: 1); // overnight shift
+          if (end < start) { //if overnight shift
+            end += const Duration(days: 1);
           }
           final duration = end - start;
-          final hours = duration.inMinutes / 60.0;
+          final hours = duration.inMinutes / 60;
 
-          // Insert worker relationships + update worker hours
+          //insert into associative entity & update worker hours
           for (var workerId in wp.workerIds) {
-            // Insert relation
+            //associative entity for worker and workPeriods
             await supabase.from('Work_Periods_Worker').insert({
               'work_period_id': workPeriodId,
               'worker_id': workerId,
             });
 
-            // Fetch current total
+            //get current total hours
             final workerResponse = await supabase
                 .from('Worker')
                 .select('total_work_hours')
                 .eq('id', workerId)
-                .maybeSingle();
+                .maybeSingle(); //null if worker not found
 
-            double currentHours = 0.0;
-            if (workerResponse != null &&
-                workerResponse['total_work_hours'] != null) {
-              currentHours =
-                  (workerResponse['total_work_hours'] as num).toDouble();
+            double currentHours = 0;
+            if (workerResponse != null && workerResponse['total_work_hours'] != null) {
+              currentHours = (workerResponse['total_work_hours'] as num).toDouble();
             }
 
-            // Update worker total
-            await supabase.from('Worker').update({
-              'total_work_hours': currentHours + hours,
-            }).eq('id', workerId);
+            //add into total hours
+            await supabase.from('Worker')
+                .update({'total_work_hours': currentHours + hours})
+                .eq('id', workerId);
           }
         }
 
-        // Reload schedules from Supabase so everything (including worker hours) is up-to-date
+        //reload schedules from Supabase so everything is refreshed
         await _loadSchedulesFromSupabase();
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -259,7 +258,6 @@
         );
 
       } catch (e) {
-        debugPrint("Error adding schedule: $e");
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Error: $e")),
         );
@@ -267,7 +265,7 @@
     }
 
     void _showAddScheduleDialog() async{
-      // Fetch workers first
+      //get workers
       final workersResponse = await supabase.from('Worker').select();
 
       List<sch.Worker> workerList = [];
@@ -277,15 +275,12 @@
         totalWorkHours: (w['total_work_hours'] as num?)?.toDouble() ?? 0,
       )).toList();
 
-      final now = DateTime.now();
+      final now = DateTime.now(); //for created at
       DateTime? startDate;
       DateTime? endDate;
       final nameController = TextEditingController();
       final descController = TextEditingController();
-      final List<sch.WorkPeriod> workPeriods = [sch.WorkPeriod()];
-      final List<TextEditingController> workerControllers = [
-        TextEditingController()
-      ];
+      final List<sch.WorkPeriod> workPeriods = [sch.WorkPeriod()]; //starts with 1 work period when adding
       String? errorMessage;
 
       showDialog(
@@ -303,7 +298,7 @@
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Inline error banner
+                          //show inline error message
                           if (errorMessage != null)
                             Container(
                               width: double.infinity,
@@ -331,6 +326,7 @@
 
                           Row(
                             children: [
+                              //start date picker
                               Expanded(
                                 child: ElevatedButton(
                                   onPressed: () async {
@@ -344,12 +340,12 @@
                                     if (picked != null) {
                                       setStateDialog(() => startDate = picked);
 
-                                      // Automatically adjust endDate if it is before startDate
+                                      //adjust endDate if it is before startDate
                                       if (endDate != null && endDate!.isBefore(picked)) {
                                         setStateDialog(() => endDate = picked);
                                       }
 
-                                      // Clear any previous error
+                                      //clear any previous error message
                                       setStateDialog(() => errorMessage = null);
                                     }
                                   },
@@ -363,7 +359,7 @@
 
                               const SizedBox(width: 8),
 
-  // END DATE PICKER
+                              //end date picker
                               Expanded(
                                 child: ElevatedButton(
                                   onPressed: () async {
@@ -373,18 +369,18 @@
                                     }
 
                                     final first = startDate!;
-                                    final initial = endDate ?? first; // make sure initial >= first
+                                    final initial = endDate ?? first; //make sure initial >= first
                                     final picked = await showDatePicker(
                                       context: context,
                                       initialDate: initial,
-                                      firstDate: first,
+                                      firstDate: first, //limit the end date to not be before start date
                                       lastDate: DateTime(2100),
                                     );
 
                                     if (picked != null) {
                                       setStateDialog(() {
                                         endDate = picked;
-                                        errorMessage = null; // clear previous error
+                                        errorMessage = null;
                                       });
                                     }
                                   },
@@ -406,17 +402,10 @@
                           ),
                           const SizedBox(height: 20),
 
-                          // WORK PERIODS
+                          //work periods picker
                           Column(
-                            children: List.generate(workPeriods.length, (i) {
+                            children: List.generate(workPeriods.length, (i) { //create a widget for each work period
                               final period = workPeriods[i];
-                              if (workerControllers.length <= i) {
-                                workerControllers.add(TextEditingController());
-                              }
-
-                              // always sync the workerIds -> input text
-                              workerControllers[i].text =
-                                  period.workerIds.join(", ");
 
                               return Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -522,12 +511,11 @@
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.end,
                                     children: [
-                                      if (workPeriods.length > 1)
+                                      if (workPeriods.length > 1) //only shjow remove button when > 1 work periods
                                         IconButton(
                                           onPressed: () {
                                             setStateDialog(() {
                                               workPeriods.removeAt(i);
-                                              workerControllers.removeAt(i);
                                             });
                                           },
                                           icon: const Icon(
@@ -545,7 +533,6 @@
                             onPressed: () {
                               setStateDialog(() {
                                 workPeriods.add(sch.WorkPeriod());
-                                workerControllers.add(TextEditingController());
                               });
                             },
                             icon: const Icon(Icons.add),
@@ -559,10 +546,8 @@
                 actions: [
                   ElevatedButton(
                     onPressed: () async {
-                      // VALIDATION
-                      if (nameController.text
-                          .trim()
-                          .isEmpty) {
+                      //validation
+                      if (nameController.text.trim().isEmpty) {
                         setStateDialog(() =>
                         errorMessage = "Schedule name cannot be empty");
                         return;
@@ -598,20 +583,24 @@
                         }
                       }
 
-  // Overlap validation
+                      //work periods overlap validation
                       for (int i = 0; i < workPeriods.length; i++) {
                         final wp1 = workPeriods[i];
 
-                        // Convert start/end to Duration in minutes
+                        //convert start and end times to Duration in minutes
                         Duration start1 = Duration(hours: wp1.startTime!.hour, minutes: wp1.startTime!.minute);
                         Duration end1 = Duration(hours: wp1.endTime!.hour, minutes: wp1.endTime!.minute);
-                        if (end1 <= start1) end1 += const Duration(days: 1); // handle overnight
+                        if (end1 <= start1){ //check overnight shift
+                          end1 += const Duration(days: 1);
+                        }
 
                         for (int j = i + 1; j < workPeriods.length; j++) {
                           final wp2 = workPeriods[j];
                           Duration start2 = Duration(hours: wp2.startTime!.hour, minutes: wp2.startTime!.minute);
                           Duration end2 = Duration(hours: wp2.endTime!.hour, minutes: wp2.endTime!.minute);
-                          if (end2 <= start2) end2 += const Duration(days: 1); // handle overnight
+                          if (end2 <= start2){
+                            end2 += const Duration(days: 1);
+                          }
 
                           bool overlap = start1 < end2 && end1 > start2;
 
@@ -623,7 +612,7 @@
                         }
                       }
 
-                      // Clear error
+                      //clear error message for next
                       setStateDialog(() => errorMessage = null);
 
                       final schedule = sch.Schedule(
@@ -674,7 +663,7 @@
           ),
           body: TabBarView(
             children: [
-              // --- TAB 1: SCHEDULES ---
+              //tab1: Schedules
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -746,7 +735,7 @@
                                   ),
                                 );
 
-                                // Re-fetch all schedules if a schedule was deleted
+                                //refetch all the schedules if a schedule was deleted
                                 if (deleted == true) {
                                   await _loadSchedulesFromSupabase();
                                 }
@@ -761,7 +750,7 @@
                 ),
               ),
 
-              // --- TAB 2: WORKERS ---
+              //tab2: workers
               FutureBuilder<List<Map<String, dynamic>>>(
                 future: supabase.from('Worker').select(),
                 builder: (context, snapshot) {
@@ -774,11 +763,11 @@
                             style: const TextStyle(color: Colors.red)));
                   }
                   final workers = snapshot.data ?? [];
-                  // Sort descending by total_work_hours
+                  //sort descending by total work hours
                   workers.sort((a, b) {
                     double hoursA = (a['total_work_hours'] as num?)?.toDouble() ?? 0;
                     double hoursB = (b['total_work_hours'] as num?)?.toDouble() ?? 0;
-                    return hoursB.compareTo(hoursA); // descending
+                    return hoursB.compareTo(hoursA); //sort by descending
                   });
                   if (workers.isEmpty) {
                     return const Center(child: Text("No workers found"));
@@ -789,18 +778,18 @@
                       final w = workers[index];
                       double totalHours = (w['total_work_hours'] as num?)?.toDouble() ?? 0;
 
-                      // Convert decimal hours to hours + minutes
+                      //convert decimal hours to hours + minutes (from supabase because saved as decimals)
                       final hours = totalHours.floor();
                       final minutes = ((totalHours - hours) * 60).round();
 
-                      // Check if over 8 hours
+                      //check if total hours > 8 hours
                       final isOver = totalHours > 8;
 
                       return Container(
                         margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: isOver ? Colors.red[200] : Colors.blue[50],
+                          color: isOver ? Colors.red[200] : Colors.blue[50], //red if over 8 hours
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: isOver ? Colors.red.shade400 : Colors.blue.shade200,
