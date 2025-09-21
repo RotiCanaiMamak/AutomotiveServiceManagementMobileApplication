@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
+import 'customerdetails.dart';
 
 class VehicleDetailsPage extends StatefulWidget {
   final Map<String, dynamic> vehicle;
@@ -145,6 +146,35 @@ class _VehicleDetailsPageState extends State<VehicleDetailsPage> {
         title: const Text("Vehicle Details",
             style: TextStyle(fontSize: 30, fontWeight: FontWeight.w600)),
         centerTitle: true,
+        actions: [
+          IconButton(
+              onPressed: () async {
+                final response = await Supabase.instance.client
+                .from("Customer")
+                .select()
+                .eq('ID',widget.vehicle['customerID'])
+                .single();
+
+                if(response!=null){
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => CustomerDetailsPage(customer: response),
+                    ),
+                  );
+                }else{
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Vehicle Belonging not found!'),
+                        duration: Duration(seconds: 2),
+                      )
+                  );
+                }
+              },
+              icon: const Icon(Icons.person_outline, size:30),
+              tooltip: "Go to Vehicle Belonging Details",
+          )
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
