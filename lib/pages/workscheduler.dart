@@ -324,6 +324,11 @@
                           ),
                           const SizedBox(height: 10),
 
+                          const Text(
+                            "Effective Period",
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 4),
                           Row(
                             children: [
                               //start date picker
@@ -402,6 +407,11 @@
                           ),
                           const SizedBox(height: 20),
 
+                          const Text(
+                            "Work Periods",
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 4),
                           //work periods picker
                           Column(
                             children: List.generate(workPeriods.length, (i) { //create a widget for each work period
@@ -710,23 +720,19 @@
                                 style: const TextStyle(
                                     fontWeight: FontWeight.bold),
                               ),
-                              subtitle: Text(
-                                "Name: ${s.name}\n"
-                                    "Created by: ${s.createdBy}\n"
-                                    "Date Created: ${s.dateCreated
-                                    .toLocal()
-                                    .toString()
-                                    .split(' ')[0]}\n"
-                                    "Effective Period: "
-                                    "${s.startDate != null
-                                    ? s.startDate!.toLocal().toString().split(
-                                    ' ')[0]
-                                    : '-'} to "
-                                    "${s.endDate != null ? s.endDate!
-                                    .toLocal()
-                                    .toString()
-                                    .split(' ')[0] : '-'}",
+                              subtitle: RichText(
+                                text: TextSpan(
+                                  style: const TextStyle(color: Colors.black87, fontSize: 14),
+                                  children: [
+                                    TextSpan(text: "Name: ", style: const TextStyle(fontWeight: FontWeight.bold)),
+                                    TextSpan(text: "${s.name}\n", style: const TextStyle(fontWeight: FontWeight.bold)),
+                                    TextSpan(text: "Created by: ${s.createdBy}\n"),
+                                    TextSpan(text: "Date Created: ${s.dateCreated.toLocal().toString().split(' ')[0]}\n"),
+                                    TextSpan(text: "Effective Period: ${s.startDate != null ? s.startDate!.toLocal().toString().split(' ')[0] : '-'} to ${s.endDate != null ? s.endDate!.toLocal().toString().split(' ')[0] : '-'}"),
+                                  ],
+                                ),
                               ),
+
                               onTap: () async {
                                 final deleted = await Navigator.push(
                                   context,
@@ -798,7 +804,7 @@
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text("${w['name'] ?? 'Unnamed'} (ID: ${w['id']})",
+                            Text("ID: ${w['id']} (${w['name'] ?? 'Unnamed'})",
                                 style: const TextStyle(
                                     fontWeight: FontWeight.bold, fontSize: 16)),
                             Text("${hours}h ${minutes}m",

@@ -15,11 +15,38 @@ class ScheduleDetailPage extends StatefulWidget {
 
 class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
   late Schedule schedule;
+  Map<String, String> workerNames = {};
 
   @override
   void initState() {
     super.initState();
     schedule = widget.schedule;
+    _loadWorkerNames();
+  }
+
+  Future<void> _loadWorkerNames() async {
+    final workerIds = schedule.workPeriods
+        .expand((wp) => wp.workerIds)
+        .toSet()
+        .toList(); // unique IDs
+
+    if (workerIds.isEmpty) return;
+
+    final response = await supabase
+        .from('Worker')
+        .select('id,name')
+        .filter('id', 'in', '(${workerIds.join(",")})');
+
+    final Map<String, String> namesMap = {};
+    for (var w in response) {
+      namesMap[w['id'].toString()] = w['name'] ?? 'Unknown';
+    }
+
+    if (mounted) {
+      setState(() {
+        workerNames = namesMap;
+      });
+    }
   }
 
   String _formatTime(TimeOfDay? t) {
@@ -290,8 +317,12 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text(entry.key,
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                  Text(
+                                    workerNames[entry.key] != null
+                                        ? "ID: ${entry.key} (${workerNames[entry.key]})"
+                                        : "ID: ${entry.key}",
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                  ),
                                   Text("${hours}h ${minutes}m",
                                       style: const TextStyle(fontSize: 14, color: Colors.black87)),
                                 ],
