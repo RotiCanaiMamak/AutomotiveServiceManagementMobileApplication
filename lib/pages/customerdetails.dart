@@ -107,7 +107,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                     ),
                     const SizedBox(height: 10,),
                     DropdownButtonFormField<String>(
-                      initialValue: selectedtype,
+                      value: selectedtype,
                       decoration: const InputDecoration(labelText: "Type"),
                       items: <String>['Phone Call', 'Gmail', 'SMS', 'Whatsapp']
                           .map((type) => DropdownMenuItem(

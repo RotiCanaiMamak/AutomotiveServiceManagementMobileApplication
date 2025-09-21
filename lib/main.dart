@@ -46,7 +46,9 @@ class MyApp extends StatelessWidget{
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key});
+  final String staffId;
+
+  const MyHomePage({super.key, required this.staffId});
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -54,37 +56,40 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _currentpage = 0;
+  late final List<Widget> _pages;
 
-  final List<Widget> _pages = [
-    Homepage(),
-    Vehiclepage(),
-    WorkSchedulerPage(),
-    Customerpage(),
-    Inventorypage(),
-    Invoicepage(),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      Homepage(),
+      Vehiclepage(),
+      WorkSchedulerPage(staffId: widget.staffId), // pass staffId here
+      Customerpage(),
+      Inventorypage(),
+      Invoicepage(),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
-
-    return MaterialApp(
-      home: Scaffold(
+    return Scaffold(
       body: _pages[_currentpage],
       bottomNavigationBar: BottomNavigationBar(
         selectedItemColor: Colors.blue,
-          unselectedItemColor: Colors.black,
-          currentIndex: _currentpage,
-          onTap: (i) => setState(() => _currentpage = i),
-          items: const[
-            BottomNavigationBarItem(icon: Icon(Icons.home),label:"Home"),
-            BottomNavigationBarItem(icon: Icon(Icons.directions_car),label:"Vehicles"),
-            BottomNavigationBarItem(icon: Icon(Icons.work),label:"Jobs"),
-            BottomNavigationBarItem(icon: Icon(Icons.person),label:"Customer"),
-            BottomNavigationBarItem(icon: Icon(Icons.inventory),label:"Inventory"),
-            BottomNavigationBarItem(icon: Icon(Icons.receipt),label:"Invoices")
-          ]
+        unselectedItemColor: Colors.black,
+        currentIndex: _currentpage,
+        onTap: (i) => setState(() => _currentpage = i),
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+          BottomNavigationBarItem(icon: Icon(Icons.directions_car), label: "Vehicles"),
+          BottomNavigationBarItem(icon: Icon(Icons.work), label: "Jobs"),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Customer"),
+          BottomNavigationBarItem(icon: Icon(Icons.inventory), label: "Inventory"),
+          BottomNavigationBarItem(icon: Icon(Icons.receipt), label: "Invoices"),
+        ],
       ),
-    ),
     );
   }
 }
+

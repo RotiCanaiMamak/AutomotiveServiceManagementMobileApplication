@@ -111,7 +111,7 @@ class _AddVehiclepageState extends State<AddVehiclepage> {
               SizedBox(height: 38),
               Padding(padding: const EdgeInsets.symmetric(vertical: 10.0),
                 child: DropdownButtonFormField<String>(
-                    initialValue: _selectedCustomerId,
+                    value: _selectedCustomerId,
                     decoration: const InputDecoration(labelText: "Vehicle Owner"),
                     items: _customers
                     .map((c) => DropdownMenuItem(
