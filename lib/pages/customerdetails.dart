@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart';
+import 'vehicledetails.dart';
 
 class CustomerDetailsPage extends StatefulWidget {
   final Map<String, dynamic> customer;
@@ -13,11 +14,23 @@ class CustomerDetailsPage extends StatefulWidget {
 
 class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
   late Future<List<Map<String, dynamic>>> _serviceFuture;
+  late Future<List<Map<String, dynamic>>> _belongingvehicleFuture;
 
   @override
   void initState() {
     super.initState();
     _serviceFuture = fetchCommunicationHistory();
+    _belongingvehicleFuture = fetchbelongingvehicle();
+  }
+
+  //get belonging vehicle
+  Future<List<Map<String, dynamic>>> fetchbelongingvehicle() async {
+    final response = await Supabase.instance.client
+        .from('Vehicle')
+        .select()
+        .eq('customerID', widget.customer['ID']);
+
+    return List<Map<String, dynamic>>.from(response);
   }
 
   //get foreign key
@@ -169,13 +182,13 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
         centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(10.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Image.network(
               customer['ImageURL'],
-              height: 300,
+              height: 200,
               width: double.infinity,
               fit: BoxFit.cover,
             ),
@@ -185,6 +198,76 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
             Text("Address: ${customer['Address']}"),
             Text("Contact Number: ${customer['ContactNo']}"),
             Text("Gmail: ${customer['Gmail']}"),
+
+            const SizedBox(height: 18),
+            Text("Belonging Vehicles",
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600)
+            ),
+            const SizedBox(height: 5,),
+            FutureBuilder<List<Map<String, dynamic>>>(
+              future: _belongingvehicleFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Text("Error: ${snapshot.error}");
+                }
+                final vehicles = snapshot.data ?? [];
+                if (vehicles.isEmpty) {
+                  return const Text("No Vehicles Available.");
+                }
+
+                return GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                    childAspectRatio: 0.8,
+                  ),
+                  itemCount: vehicles.length,
+                  itemBuilder: (context, index) {
+                    final vehicle = vehicles[index];
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => VehicleDetailsPage(vehicle: vehicle),
+                          ),
+                        );
+                      },
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: vehicle['ImageURL'] != null
+                                  ? Image.network(
+                                vehicle['ImageURL'],
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                              )
+                                  : Container(
+                                color: Colors.grey[300],
+                                child: const Icon(Icons.directions_car, size: 40),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            vehicle['Plate No'] ?? 'No Plate',
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
 
             const SizedBox(height: 18),
 
