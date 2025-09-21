@@ -24,11 +24,14 @@ class _InvoicepageState extends State<Invoicepage> {
   }
 
   Future<void> fetchInvoices() async {
+    setState(() {
+      isLoading = true;
+    });
     try {
       final data = await supabase
           .from('Invoice')
           .select('''
-            invoiceNo, payment_date, payment_amt, customer_id, 
+            invoiceNo, payment_date, payment_amt, customer_id, Status,
             Customer(ID, Name, Address, ContactNo, ImageURL, Gmail),
             Invoice_Inventory(*, inventory(item_id, name, description, image_url, qty, details, price))
           ''')
@@ -153,19 +156,22 @@ class _InvoicepageState extends State<Invoicepage> {
                                 children: [
                                   Text("Date: ${invoice['payment_date'].toString().substring(0, 10)}"),
                                   Text("Bill No: ${invoice['invoiceNo']}"),
-                                  Text("Amount: MYR ${total.toStringAsFixed(2)}"), // total payable
+                                  Text("Amount: RM ${total.toStringAsFixed(2)}"),
+                                  Text("Status: ${invoice['Status'] ?? 'Unpaid'}"),
                                   Text("Customer: ${invoice['Customer']?['Name'] ?? 'Unknown'}"),
                                   Align(
                                     alignment: Alignment.centerRight,
                                     child: ElevatedButton(
-                                      onPressed: () {
-                                        Navigator.push(
+                                      onPressed: () async {
+                                        await Navigator.push(
                                           context,
                                           MaterialPageRoute(
                                             builder: (context) =>
                                                 InvoiceDetailPage(invoice: invoice),
                                           ),
                                         );
+                                        // Refresh list after returning from detail
+                                        fetchInvoices();
                                       },
                                       child: const Text("View"),
                                     ),
@@ -197,6 +203,7 @@ class InvoiceDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final customer = invoice['Customer'] ?? {};
     final items = invoice['Invoice_Inventory'] ?? [];
+    final status = invoice['Status'] ?? 'Unpaid';
 
     double total = 0;
     for (var assoc in items) {
@@ -225,6 +232,17 @@ class InvoiceDetailPage extends StatelessWidget {
             const SizedBox(height: 20),
             Text("Payment Date  : ${invoice['payment_date'].toString().substring(0, 10)}"),
             Text("Invoice No    : ${invoice['invoiceNo']}"),
+            const SizedBox(height: 8),
+            // Status chip
+            Row(
+              children: [
+                const Text("Status: ", style: TextStyle(fontWeight: FontWeight.bold)),
+                Chip(
+                  label: Text(status),
+                  backgroundColor: status == 'Paid' ? Colors.green[300] : Colors.red[300],
+                ),
+              ],
+            ),
             const Divider(),
             // Table header
             Container(
@@ -232,9 +250,10 @@ class InvoiceDetailPage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
               child: Row(
                 children: const [
-                  Expanded(flex: 5, child: Text("Description", style: TextStyle(fontWeight: FontWeight.bold))),
+                  Expanded(flex: 4, child: Text("Description", style: TextStyle(fontWeight: FontWeight.bold))),
                   Expanded(flex: 2, child: Text("Qty", style: TextStyle(fontWeight: FontWeight.bold))),
-                  Expanded(flex: 3, child: Text("Price", style: TextStyle(fontWeight: FontWeight.bold))),
+                  Expanded(flex: 3, child: Text("Price (Unit)", style: TextStyle(fontWeight: FontWeight.bold))),
+                  Expanded(flex: 3, child: Text("Price (Set)", style: TextStyle(fontWeight: FontWeight.bold))),
                 ],
               ),
             ),
@@ -242,14 +261,17 @@ class InvoiceDetailPage extends StatelessWidget {
             ...items.map((assoc) {
               final item = assoc['inventory'] ?? {};
               int purchasedQty = assoc['item_purchased_quantity'] ?? 0;
-              double price = (item['price'] ?? 0).toDouble();
+              double unitPrice = (item['price'] ?? 0).toDouble();
+              double lineTotal = purchasedQty * unitPrice;
+
               return Container(
                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
                 child: Row(
                   children: [
-                    Expanded(flex: 5, child: Text(item['name'] ?? '')),
+                    Expanded(flex: 4, child: Text(item['name'] ?? '')),
                     Expanded(flex: 2, child: Text(purchasedQty.toString())),
-                    Expanded(flex: 3, child: Text("MYR ${price.toStringAsFixed(2)}")),
+                    Expanded(flex: 3, child: Text("RM ${unitPrice.toStringAsFixed(2)}")),
+                    Expanded(flex: 3, child: Text("RM ${lineTotal.toStringAsFixed(2)}")),
                   ],
                 ),
               );
@@ -258,7 +280,7 @@ class InvoiceDetailPage extends StatelessWidget {
             Align(
               alignment: Alignment.centerRight,
               child: Text(
-                "Total Payable Amount: MYR ${total.toStringAsFixed(2)}",
+                "Total Payable Amount: RM ${total.toStringAsFixed(2)}",
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ),
@@ -267,11 +289,28 @@ class InvoiceDetailPage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: status == 'Paid' ? null : () async {
+                    try {
+                      await supabase
+                          .from('Invoice')
+                          .update({'Status': 'Paid'})
+                          .eq('invoiceNo', invoice['invoiceNo']);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Invoice approved!')),
+                      );
+                      Navigator.pop(context); // go back to list and refresh
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error approving invoice: $e')),
+                      );
+                    }
+                  },
                   child: const Text("Approve Invoice"),
                 ),
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: status == 'Paid' ? () {
+                    // Generate invoice logic
+                  } : null,
                   child: const Text("Generate Invoice"),
                 ),
               ],
