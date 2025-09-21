@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 
 // Supabase client
 final supabase = Supabase.instance.client;
@@ -213,6 +215,43 @@ class InvoiceDetailPage extends StatelessWidget {
       total += purchasedQty * price;
     }
 
+    Future<void> generateInvoiceTXT() async {
+      try {
+        StringBuffer content = StringBuffer();
+        content.writeln("Invoice No: ${invoice['invoiceNo']}");
+        content.writeln("Payment Date: ${invoice['payment_date'].toString().substring(0, 10)}");
+        content.writeln("Customer: ${customer['Name'] ?? 'Unknown'}");
+        content.writeln("Status: $status");
+        content.writeln("\nItems:");
+        content.writeln("Description | Qty | Price(Unit) | Price(Set)");
+
+        for (var assoc in items) {
+          final item = assoc['inventory'] ?? {};
+          int purchasedQty = assoc['item_purchased_quantity'] ?? 0;
+          double unitPrice = (item['price'] ?? 0).toDouble();
+          double lineTotal = purchasedQty * unitPrice;
+          content.writeln("${item['name']} | $purchasedQty | RM ${unitPrice.toStringAsFixed(2)} | RM ${lineTotal.toStringAsFixed(2)}");
+        }
+
+        content.writeln("\nTotal Payable: RM ${total.toStringAsFixed(2)}");
+
+        final dir = await getApplicationDocumentsDirectory();
+        final file = File('${dir.path}/Invoice_${invoice['invoiceNo']}.txt');
+        await file.writeAsString(content.toString());
+
+        print('Invoice saved at: ${file.path}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Invoice saved to ${file.path}')),
+        );
+        // View -> Tool Windows -> Device Explorer -> ctrl+f(assgn1)
+
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error generating invoice: $e')),
+        );
+      }
+    }
+
     return Scaffold(
       appBar: AppBar(title: const Text("Invoice Detail")),
       body: SingleChildScrollView(
@@ -244,7 +283,7 @@ class InvoiceDetailPage extends StatelessWidget {
               ],
             ),
             const Divider(),
-            // Table header
+            // Items Table Header
             Container(
               color: Colors.grey[300],
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
@@ -298,7 +337,7 @@ class InvoiceDetailPage extends StatelessWidget {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Invoice approved!')),
                       );
-                      Navigator.pop(context); // go back to list and refresh
+                      Navigator.pop(context);
                     } catch (e) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('Error approving invoice: $e')),
@@ -308,9 +347,7 @@ class InvoiceDetailPage extends StatelessWidget {
                   child: const Text("Approve Invoice"),
                 ),
                 ElevatedButton(
-                  onPressed: status == 'Paid' ? () {
-                    // Generate invoice logic
-                  } : null,
+                  onPressed: status == 'Paid' ? generateInvoiceTXT : null,
                   child: const Text("Generate Invoice"),
                 ),
               ],
