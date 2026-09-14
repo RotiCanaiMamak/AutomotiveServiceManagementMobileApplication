@@ -2,7 +2,7 @@
 
 A mobile workshop management application developed with Flutter for the **Mobile Application Development** assignment.
 
-GPT Car Workshop Service Hub helps workshop staff manage customers, vehicles, service records, work schedules, spare part inventory, and invoices from one application. It uses Supabase as its cloud backend for database and image storage.
+This mobile application helps workshop staff manage customers, vehicles, service records, work schedules, spare part inventory, and invoices from one application. It uses Supabase as its cloud backend for database and image storage.
 
 ## Features
 
